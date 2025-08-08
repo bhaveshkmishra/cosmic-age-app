@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic Age Calculator with Gemini</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        #star-container {
+            overflow: hidden;
+        }
+
+        .star {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            animation: twinkle linear infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% {
+                opacity: 0.2;
+                transform: scale(0.8);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+        }
+
+        .moving-star {
+            animation: move-star linear infinite;
+        }
+
+        @keyframes move-star {
+            from {
+                transform: translateY(0vh);
+            }
+            to {
+                transform: translateY(-100vh);
+            }
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .form-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+            border-color: #3B82F6;
+        }
+
+        /* Loading spinner for Gemini API call */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #8B5CF6; /* purple-500 */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+
+    <!-- Starry background container -->
+    <div id="star-container" class="absolute top-0 left-0 w-full h-full z-0"></div>
+
+    <!-- Main content container -->
+    <div class="relative min-h-screen flex flex-col items-center justify-center p-4 z-10">
+        
+        <div class="glass-card w-full max-w-2xl p-6 md:p-8 rounded-2xl shadow-2xl space-y-6">
+            
+            <!-- Header -->
+            <div class="text-center">
+                <h1 class="text-3xl md:text-4xl font-bold tracking-tight">🌟 Cosmic Age Calculator</h1>
+                <p class="text-gray-300 mt-2">Enter your birth date to see your journey through time and space.</p>
+                <div class="mt-2">
+                    <span class="inline-block bg-blue-600 text-xs px-2 py-1 rounded-full">Enhanced v2.0</span>
+                </div>
+            </div>
+
+            <!-- Input fields -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label for="day" class="block text-sm font-medium text-gray-300 mb-1">Day</label>
+                    <input type="number" id="day" placeholder="DD" class="form-input w-full bg-gray-800 bg-opacity-50 border border-gray-600 rounded-lg p-3 text-white text-center transition duration-300">
+                </div>
+                <div>
+                    <label for="month" class="block text-sm font-medium text-gray-300 mb-1">Month</label>
+                    <input type="number" id="month" placeholder="MM" class="form-input w-full bg-gray-800 bg-opacity-50 border border-gray-600 rounded-lg p-3 text-white text-center transition duration-300">
+                </div>
+                <div>
+                    <label for="year" class="block text-sm font-medium text-gray-300 mb-1">Year</label>
+                    <input type="number" id="year" placeholder="YYYY" class="form-input w-full bg-gray-800 bg-opacity-50 border border-gray-600 rounded-lg p-3 text-white text-center transition duration-300">
+                </div>
+            </div>
+
+            <!-- Buttons Container -->
+            <div class="flex flex-col sm:flex-row gap-4">
+                <button id="calculate-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg">
+                    🚀 Calculate Age
+                </button>
+                <button id="generate-milestones-btn" class="hidden w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg">
+                    ✨ Generate Cosmic Milestones
+                </button>
+            </div>
+            
+            <!-- Additional Action Buttons -->
+            <div id="extra-actions" class="hidden flex flex-wrap gap-2 justify-center">
+                <button id="save-result-btn" class="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded-lg transition-all duration-300">
+                    💾 Save Result
+                </button>
+                <button id="share-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-2 rounded-lg transition-all duration-300">
+                    📱 Share
+                </button>
+                <button id="next-birthday-btn" class="bg-pink-600 hover:bg-pink-700 text-white text-sm px-4 py-2 rounded-lg transition-all duration-300">
+                    🎂 Next Birthday
+                </button>
+                <button id="fun-facts-btn" class="bg-orange-600 hover:bg-orange-700 text-white text-sm px-4 py-2 rounded-lg transition-all duration-300">
+                    🎯 Fun Facts
+                </button>
+            </div>
+            
+            <!-- Error Message Box -->
+            <div id="error-message" class="hidden text-red-400 bg-red-900 bg-opacity-50 p-3 rounded-lg text-center"></div>
+
+            <!-- Age Display -->
+            <div id="age-display" class="hidden pt-4 space-y-4">
+                <p class="text-center text-lg text-gray-300">You have been on this cosmic journey for:</p>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
+                    <div class="glass-card p-4 rounded-lg"><span id="years" class="block text-4xl font-bold">0</span><span class="text-gray-400">Years</span></div>
+                    <div class="glass-card p-4 rounded-lg"><span id="months" class="block text-4xl font-bold">0</span><span class="text-gray-400">Months</span></div>
+                    <div class="glass-card p-4 rounded-lg"><span id="days" class="block text-4xl font-bold">0</span><span class="text-gray-400">Days</span></div>
+                    <div class="glass-card p-4 rounded-lg"><span id="hours" class="block text-4xl font-bold">0</span><span class="text-gray-400">Hours</span></div>
+                    <div class="glass-card p-4 rounded-lg"><span id="minutes" class="block text-4xl font-bold">0</span><span class="text-gray-400">Minutes</span></div>
+                    <div class="glass-card p-4 rounded-lg"><span id="seconds" class="block text-4xl font-bold">0</span><span class="text-gray-400">Seconds</span></div>
+                </div>
+            </div>
+
+            <!-- Next Birthday Countdown -->
+            <div id="birthday-countdown" class="hidden pt-4">
+                <div class="glass-card p-4 rounded-lg text-center">
+                    <h3 class="text-lg font-semibold mb-2">🎂 Next Birthday Countdown</h3>
+                    <div class="grid grid-cols-4 gap-2 text-center">
+                        <div><span id="bd-days" class="block text-2xl font-bold">0</span><span class="text-xs text-gray-400">Days</span></div>
+                        <div><span id="bd-hours" class="block text-2xl font-bold">0</span><span class="text-xs text-gray-400">Hours</span></div>
+                        <div><span id="bd-minutes" class="block text-2xl font-bold">0</span><span class="text-xs text-gray-400">Minutes</span></div>
+                        <div><span id="bd-seconds" class="block text-2xl font-bold">0</span><span class="text-xs text-gray-400">Seconds</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fun Facts Display -->
+            <div id="fun-facts-container" class="hidden pt-4">
+                <div class="glass-card p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-3">🎯 Amazing Life Statistics</h3>
+                    <div id="fun-facts-list" class="space-y-2 text-sm text-gray-200"></div>
+                </div>
+            </div>
+
+            <!-- Gemini Milestones Display -->
+            <div id="milestones-container" class="hidden pt-4 space-y-2">
+                <div id="loader" class="loader hidden"></div>
+                <div id="milestones-list" class="glass-card p-4 rounded-lg text-gray-200 space-y-2"></div>
+            </div>
+
+            <!-- Saved Results Display -->
+            <div id="saved-results" class="hidden pt-4">
+                <div class="glass-card p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-3">💾 Saved Calculations</h3>
+                    <div id="saved-list" class="space-y-2 text-sm"></div>
+                    <button id="clear-saved-btn" class="mt-3 bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded transition-all duration-300">
+                        🗑️ Clear All
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <footer class="text-center mt-8 text-gray-500">
+            <p>Current Time: <span id="current-time"></span></p>
+        </footer>
+    </div>
+
+    <!-- Project Planner Section -->
+    <div class="relative z-10 w-full flex justify-center p-4">
+        <div class="glass-card w-full max-w-2xl p-6 md:p-8 rounded-2xl shadow-2xl space-y-4">
+            <div class="text-center">
+                <h2 class="text-2xl md:text-3xl font-bold">🧭 Project Planner</h2>
+                <p class="text-gray-300 mt-1 text-sm">Plan a project by duration and see live time left and your age at completion.</p>
+                <p id="project-birthdate-hint" class="text-amber-300 mt-2 text-xs hidden">Tip: Enter your birth date above to compute age at project completion.</p>
+            </div>
+
+            <!-- Project Creator -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Project Name</label>
+                    <input id="project-name" type="text" placeholder="e.g., BSc Degree, Marathon Training" class="form-input w-full bg-gray-800 bg-opacity-50 border border-gray-600 rounded-lg p-3 text-white transition duration-300" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Start Date</label>
+                    <input id="project-start-date" type="date" class="form-input w-full bg-gray-800 bg-opacity-50 border border-gray-600 rounded-lg p-3 text-white transition duration-300" />
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Years</label>
+                        <input id="project-duration-years" type="number" min="0" value="0" class="form-input w-full bg-gray-800 bg-opacity-50 border border-gray-600 rounded-lg p-3 text-white transition duration-300 text-center" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Months</label>
+                        <input id="project-duration-months" type="number" min="0" value="0" class="form-input w-full bg-gray-800 bg-opacity-50 border border-gray-600 rounded-lg p-3 text-white transition duration-300 text-center" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Days</label>
+                        <input id="project-duration-days" type="number" min="0" value="0" class="form-input w-full bg-gray-800 bg-opacity-50 border border-gray-600 rounded-lg p-3 text-white transition duration-300 text-center" />
+                    </div>
+                </div>
+                <div class="sm:col-span-2 flex gap-3">
+                    <button id="add-project-btn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg">➕ Add Project</button>
+                    <button id="clear-projects-btn" class="w-48 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300">🗑️ Clear Projects</button>
+                </div>
+            </div>
+
+            <!-- Projects List -->
+            <div id="projects-section" class="space-y-3">
+                <h3 class="text-lg font-semibold">📋 Your Projects</h3>
+                <div id="projects-empty" class="text-sm text-gray-400">No projects yet. Add one above!</div>
+                <div id="projects-list" class="space-y-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const starContainer = document.getElementById('star-container');
+            const calculateBtn = document.getElementById('calculate-btn');
+            const generateMilestonesBtn = document.getElementById('generate-milestones-btn');
+            const ageDisplay = document.getElementById('age-display');
+            const errorMessage = document.getElementById('error-message');
+            const currentTimeEl = document.getElementById('current-time');
+            const milestonesContainer = document.getElementById('milestones-container');
+            const milestonesList = document.getElementById('milestones-list');
+            const loader = document.getElementById('loader');
+            const extraActions = document.getElementById('extra-actions');
+            const saveResultBtn = document.getElementById('save-result-btn');
+            const shareBtn = document.getElementById('share-btn');
+            const nextBirthdayBtn = document.getElementById('next-birthday-btn');
+            const funFactsBtn = document.getElementById('fun-facts-btn');
+            const birthdayCountdown = document.getElementById('birthday-countdown');
+            const funFactsContainer = document.getElementById('fun-facts-container');
+            const savedResults = document.getElementById('saved-results');
+            const clearSavedBtn = document.getElementById('clear-saved-btn');
+            // Project planner elements
+            const projectBirthdateHint = document.getElementById('project-birthdate-hint');
+            const projectNameInput = document.getElementById('project-name');
+            const projectStartDateInput = document.getElementById('project-start-date');
+            const projectYearsInput = document.getElementById('project-duration-years');
+            const projectMonthsInput = document.getElementById('project-duration-months');
+            const projectDaysInput = document.getElementById('project-duration-days');
+            const addProjectBtn = document.getElementById('add-project-btn');
+            const clearProjectsBtn = document.getElementById('clear-projects-btn');
+            const projectsList = document.getElementById('projects-list');
+            const projectsEmpty = document.getElementById('projects-empty');
+            let ageInterval;
+            let birthdayInterval;
+            let projectsInterval;
+            let currentBirthDate;
+            let projects = [];
+
+            // --- Star Generation ---
+            function createStars() {
+                const numStars = 200;
+                for (let i = 0; i < numStars; i++) {
+                    const star = document.createElement('div');
+                    const size = Math.random() * 2 + 1;
+                    star.style.width = `${size}px`;
+                    star.style.height = `${size}px`;
+                    star.style.top = `${Math.random() * 100}%`;
+                    star.style.left = `${Math.random() * 100}%`;
+                    star.classList.add('star');
+                    star.style.animationDuration = `${Math.random() * 3 + 2}s`;
+                    star.style.animationDelay = `${Math.random() * 3}s`;
+                    if (Math.random() > 0.9) {
+                        star.classList.add('moving-star');
+                        star.style.animationDuration = `${Math.random() * 50 + 50}s`;
+                    }
+                    starContainer.appendChild(star);
+                }
+            }
+
+            // --- Real-time Clock ---
+            function updateCurrentTime() {
+                const now = new Date();
+                currentTimeEl.textContent = now.toLocaleTimeString();
+            }
+            setInterval(updateCurrentTime, 1000);
+            updateCurrentTime();
+
+            // --- Age Calculation Logic ---
+            calculateBtn.addEventListener('click', () => {
+                const day = parseInt(document.getElementById('day').value);
+                const month = parseInt(document.getElementById('month').value) - 1;
+                const year = parseInt(document.getElementById('year').value);
+
+                if (isNaN(day) || isNaN(month) || isNaN(year) || day < 1 || day > 31 || month < 0 || month > 11 || year < 1900 || year > new Date().getFullYear()) {
+                    showError('Please enter a valid date (e.g., Day: 1-31, Month: 1-12, Year: 1900-present).');
+                    return;
+                }
+                
+                const birthDate = new Date(year, month, day);
+                if (birthDate > new Date()) {
+                    showError('Birth date cannot be in the future.');
+                    return;
+                }
+
+                currentBirthDate = birthDate;
+                errorMessage.classList.add('hidden');
+                ageDisplay.classList.remove('hidden');
+                generateMilestonesBtn.classList.remove('hidden'); // Show Gemini button
+                extraActions.classList.remove('hidden'); // Show extra action buttons
+                milestonesContainer.classList.add('hidden'); // Hide old results
+                birthdayCountdown.classList.add('hidden');
+                funFactsContainer.classList.add('hidden');
+                if (currentBirthDate) projectBirthdateHint.classList.add('hidden');
+
+                if (ageInterval) clearInterval(ageInterval);
+                if (birthdayInterval) clearInterval(birthdayInterval);
+                ageInterval = setInterval(() => calculateAndDisplayAge(birthDate), 1000);
+                calculateAndDisplayAge(birthDate);
+                // Update projects panel to show age-at-completion
+                renderProjects();
+            });
+            
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.classList.remove('hidden');
+                ageDisplay.classList.add('hidden');
+                generateMilestonesBtn.classList.add('hidden');
+                extraActions.classList.add('hidden');
+                milestonesContainer.classList.add('hidden');
+                birthdayCountdown.classList.add('hidden');
+                funFactsContainer.classList.add('hidden');
+                if (ageInterval) clearInterval(ageInterval);
+                if (birthdayInterval) clearInterval(birthdayInterval);
+            }
+
+            function calculateAndDisplayAge(birthDate) {
+                const now = new Date();
+                let years = now.getFullYear() - birthDate.getFullYear();
+                let months = now.getMonth() - birthDate.getMonth();
+                let days = now.getDate() - birthDate.getDate();
+                let hours = now.getHours() - birthDate.getHours();
+                let minutes = now.getMinutes() - birthDate.getMinutes();
+                let seconds = now.getSeconds() - birthDate.getSeconds();
+                
+                if (seconds < 0) { seconds += 60; minutes--; }
+                if (minutes < 0) { minutes += 60; hours--; }
+                if (hours < 0) { hours += 24; days--; }
+                if (days < 0) {
+                    const lastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+                    days += lastMonth.getDate();
+                    months--;
+                }
+                if (months < 0) { months += 12; years--; }
+
+                document.getElementById('years').textContent = years;
+                document.getElementById('months').textContent = months;
+                document.getElementById('days').textContent = days;
+                document.getElementById('hours').textContent = hours;
+                document.getElementById('minutes').textContent = minutes;
+                document.getElementById('seconds').textContent = seconds;
+            }
+
+            // Utility: calculate age at specific date
+            function calculateAgeBetween(birthDate, atDate) {
+                if (!birthDate || !atDate) return null;
+                let years = atDate.getFullYear() - birthDate.getFullYear();
+                let months = atDate.getMonth() - birthDate.getMonth();
+                let days = atDate.getDate() - birthDate.getDate();
+                if (days < 0) {
+                    const lastMonth = new Date(atDate.getFullYear(), atDate.getMonth(), 0);
+                    days += lastMonth.getDate();
+                    months--;
+                }
+                if (months < 0) {
+                    months += 12;
+                    years--;
+                }
+                return { years, months, days };
+            }
+
+            function addDurationToDate(start, y=0, m=0, d=0) {
+                const end = new Date(start.getTime());
+                if (y) end.setFullYear(end.getFullYear() + Number(y));
+                if (m) end.setMonth(end.getMonth() + Number(m));
+                if (d) end.setDate(end.getDate() + Number(d));
+                return end;
+            }
+
+            function formatDHMS(ms) {
+                if (ms < 0) ms = 0;
+                const totalSeconds = Math.floor(ms / 1000);
+                const days = Math.floor(totalSeconds / (24 * 3600));
+                const hours = Math.floor((totalSeconds % (24 * 3600)) / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+                return { days, hours, minutes, seconds };
+            }
+
+            // --- Gemini API Integration ---
+            generateMilestonesBtn.addEventListener('click', async () => {
+                const years = document.getElementById('years').textContent;
+                const months = document.getElementById('months').textContent;
+                const days = document.getElementById('days').textContent;
+
+                milestonesContainer.classList.remove('hidden');
+                milestonesList.classList.add('hidden');
+                loader.classList.remove('hidden');
+
+                const prompt = `A person is ${years} years, ${months} months, and ${days} days old. Generate a short, fun, and inspiring list of 3-4 cosmic or interesting real-world milestones they have passed in their lifetime. Format each milestone as a separate paragraph. Be creative and use a space/cosmic theme. Examples: "You've orbited the sun X times!", "Your heart has beaten over Y billion times.", "You've traveled millions of miles with Earth around the galaxy."`;
+
+                try {
+                    let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+                    const payload = { contents: chatHistory };
+                    const apiKey = "AIzaSyBK8j9XyZ2QwF8R3mL1nP4vT7sE9xH5cA6b"; // Demo API key - replace with your own
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                    
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`API Error: ${response.statusText}`);
+                    }
+
+                    const result = await response.json();
+
+                    if (result.candidates && result.candidates.length > 0 && result.candidates[0].content && result.candidates[0].content.parts && result.candidates[0].content.parts.length > 0) {
+                        const text = result.candidates[0].content.parts[0].text;
+                        // Format response: split by newlines and wrap in <p> tags
+                        const formattedText = text.split('\n').filter(line => line.trim() !== '').map(line => `<p>${line}</p>`).join('');
+                        milestonesList.innerHTML = formattedText;
+                    } else {
+                        throw new Error("Unexpected API response format.");
+                    }
+                } catch (error) {
+                    console.error("Gemini API call failed:", error);
+                    milestonesList.innerHTML = `<p class="text-red-400">🤖 Gemini AI is currently unavailable. Here are some cosmic facts:</p>
+                    <p>🌍 You've traveled over ${(parseInt(years) * 584000000).toLocaleString()} miles through space with Earth!</p>
+                    <p>💓 Your heart has beaten approximately ${(parseInt(years) * 37000000).toLocaleString()} times!</p>
+                    <p>🌅 You've experienced about ${(parseInt(years) * 365).toLocaleString()} sunrises and sunsets!</p>
+                    <p>🌙 You've seen the moon complete ${(parseInt(years) * 12).toLocaleString()} cycles around Earth!</p>`;
+                } finally {
+                    loader.classList.add('hidden');
+                    milestonesList.classList.remove('hidden');
+                }
+            });
+
+            // --- New Features Event Listeners ---
+            
+            // Save Result functionality
+            saveResultBtn.addEventListener('click', () => {
+                if (!currentBirthDate) return;
+                
+                const savedData = {
+                    birthDate: currentBirthDate.toISOString(),
+                    calculatedOn: new Date().toISOString(),
+                    age: {
+                        years: document.getElementById('years').textContent,
+                        months: document.getElementById('months').textContent,
+                        days: document.getElementById('days').textContent
+                    }
+                };
+                
+                let savedResults = JSON.parse(localStorage.getItem('cosmicAgeResults') || '[]');
+                savedResults.push(savedData);
+                localStorage.setItem('cosmicAgeResults', JSON.stringify(savedResults));
+                
+                alert('🎉 Age calculation saved successfully!');
+                displaySavedResults();
+            });
+
+            // Share functionality
+            shareBtn.addEventListener('click', () => {
+                const years = document.getElementById('years').textContent;
+                const months = document.getElementById('months').textContent;
+                const days = document.getElementById('days').textContent;
+                
+                const shareText = `🌟 I've been on this cosmic journey for ${years} years, ${months} months, and ${days} days! Check out the Cosmic Age Calculator: ${window.location.href}`;
+                
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'My Cosmic Age',
+                        text: shareText,
+                        url: window.location.href
+                    });
+                } else {
+                    navigator.clipboard.writeText(shareText).then(() => {
+                        alert('📋 Shared text copied to clipboard!');
+                    });
+                }
+            });
+
+            // Next Birthday Countdown
+            nextBirthdayBtn.addEventListener('click', () => {
+                if (!currentBirthDate) return;
+                
+                birthdayCountdown.classList.remove('hidden');
+                funFactsContainer.classList.add('hidden');
+                milestonesContainer.classList.add('hidden');
+                
+                if (birthdayInterval) clearInterval(birthdayInterval);
+                birthdayInterval = setInterval(updateBirthdayCountdown, 1000);
+                updateBirthdayCountdown();
+            });
+
+            function updateBirthdayCountdown() {
+                const now = new Date();
+                const thisYear = now.getFullYear();
+                let nextBirthday = new Date(thisYear, currentBirthDate.getMonth(), currentBirthDate.getDate());
+                
+                if (nextBirthday < now) {
+                    nextBirthday = new Date(thisYear + 1, currentBirthDate.getMonth(), currentBirthDate.getDate());
+                }
+                
+                const diff = nextBirthday - now;
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                
+                document.getElementById('bd-days').textContent = days;
+                document.getElementById('bd-hours').textContent = hours;
+                document.getElementById('bd-minutes').textContent = minutes;
+                document.getElementById('bd-seconds').textContent = seconds;
+            }
+
+            // Fun Facts functionality
+            funFactsBtn.addEventListener('click', () => {
+                if (!currentBirthDate) return;
+                
+                funFactsContainer.classList.remove('hidden');
+                birthdayCountdown.classList.add('hidden');
+                milestonesContainer.classList.add('hidden');
+                
+                generateFunFacts();
+            });
+
+            function generateFunFacts() {
+                const now = new Date();
+                const ageInMs = now - currentBirthDate;
+                const ageInDays = Math.floor(ageInMs / (1000 * 60 * 60 * 24));
+                const ageInHours = Math.floor(ageInMs / (1000 * 60 * 60));
+                const ageInMinutes = Math.floor(ageInMs / (1000 * 60));
+                const ageInSeconds = Math.floor(ageInMs / 1000);
+                const years = Math.floor(ageInDays / 365.25);
+                
+                const facts = [
+                    `🫀 Your heart has beaten approximately ${(years * 40000000).toLocaleString()} times!`,
+                    `👁️ You've blinked about ${(ageInDays * 17000).toLocaleString()} times!`,
+                    `🌍 You've traveled ${(years * 584000000).toLocaleString()} miles through space with Earth!`,
+                    `💨 You've taken roughly ${(ageInMinutes * 20).toLocaleString()} breaths!`,
+                    `🍕 If you ate pizza once a week, you've had about ${Math.floor(ageInDays / 7).toLocaleString()} slices!`,
+                    `☀️ You've experienced ${ageInDays.toLocaleString()} sunrises and sunsets!`,
+                    `🌙 The moon has orbited Earth ${Math.floor(ageInDays / 29.5).toLocaleString()} times since you were born!`,
+                    `⚡ Your neurons have fired trillions of times - approximately ${(ageInSeconds * 1000000).toLocaleString()} signals!`,
+                    `🦶 You've taken roughly ${(ageInDays * 7500).toLocaleString()} steps (assuming 7,500 steps/day)!`,
+                    `😴 You've probably slept for about ${Math.floor(ageInHours / 3).toLocaleString()} hours total!`
+                ];
+                
+                const funFactsList = document.getElementById('fun-facts-list');
+                funFactsList.innerHTML = facts.map(fact => `<p class="p-2 bg-gray-800 bg-opacity-30 rounded">${fact}</p>`).join('');
+            }
+
+            // Display saved results functionality
+            function displaySavedResults() {
+                const savedData = JSON.parse(localStorage.getItem('cosmicAgeResults') || '[]');
+                const savedList = document.getElementById('saved-list');
+                
+                if (savedData.length === 0) {
+                    savedResults.classList.add('hidden');
+                    return;
+                }
+                
+                savedResults.classList.remove('hidden');
+                savedList.innerHTML = savedData.map((result, index) => {
+                    const birthDate = new Date(result.birthDate).toLocaleDateString();
+                    const calculatedOn = new Date(result.calculatedOn).toLocaleDateString();
+                    return `<div class="p-2 bg-gray-800 bg-opacity-30 rounded flex justify-between items-center">
+                        <span>Born: ${birthDate} | Age: ${result.age.years}y ${result.age.months}m ${result.age.days}d</span>
+                        <span class="text-xs text-gray-400">Saved: ${calculatedOn}</span>
+                    </div>`;
+                }).join('');
+            }
+
+            // Clear saved results
+            clearSavedBtn.addEventListener('click', () => {
+                if (confirm('Are you sure you want to clear all saved results?')) {
+                    localStorage.removeItem('cosmicAgeResults');
+                    savedResults.classList.add('hidden');
+                    alert('🗑️ All saved results cleared!');
+                }
+            });
+
+            // Load saved results on page load
+            displaySavedResults();
+            
+            createStars();
+
+            // --- Project Planner ---
+            function loadProjects() {
+                try {
+                    projects = JSON.parse(localStorage.getItem('cosmicProjects') || '[]');
+                } catch { projects = []; }
+            }
+
+            function saveProjects() {
+                localStorage.setItem('cosmicProjects', JSON.stringify(projects));
+            }
+
+            function percentProgress(start, end, now) {
+                const total = end - start;
+                if (total <= 0) return 100;
+                const elapsed = now - start;
+                return Math.max(0, Math.min(100, Math.round((elapsed / total) * 100)));
+            }
+
+            function renderProjects() {
+                projectsList.innerHTML = '';
+                if (!projects || projects.length === 0) {
+                    projectsEmpty.classList.remove('hidden');
+                } else {
+                    projectsEmpty.classList.add('hidden');
+                }
+
+                const now = new Date();
+                projects.forEach((p, idx) => {
+                    const start = new Date(p.startDate);
+                    const end = new Date(p.endDate);
+                    const beforeStart = now < start;
+                    const done = p.completed || now >= end;
+                    const timeLeft = done ? 0 : (beforeStart ? (start - now) : (end - now));
+                    const t = formatDHMS(timeLeft);
+                    const progress = done ? 100 : (beforeStart ? 0 : percentProgress(start, end, now));
+                    const ageAtCompletion = currentBirthDate ? calculateAgeBetween(currentBirthDate, end) : null;
+
+                    const container = document.createElement('div');
+                    container.className = 'p-4 rounded-lg bg-gray-800 bg-opacity-40 border border-gray-700';
+                    container.innerHTML = `
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <div class="font-semibold text-lg ${done ? 'line-through text-gray-400' : ''}">${escapeHtml(p.name)}</div>
+                                <div class="text-xs text-gray-400">Start: ${new Date(p.startDate).toLocaleString()} • End: ${new Date(p.endDate).toLocaleString()}</div>
+                                ${ageAtCompletion ? `<div class="text-sm text-gray-300">Age at completion: <span class="font-semibold">${ageAtCompletion.years}y ${ageAtCompletion.months}m ${ageAtCompletion.days}d</span></div>` : `<div class="text-sm text-amber-300">Set your birth date above to see your age at completion.</div>`}
+                            </div>
+                            <div class="flex gap-2">
+                                <button data-action="complete" data-index="${idx}" class="text-xs bg-emerald-600 hover:bg-emerald-700 px-3 py-1 rounded ${done ? 'opacity-50 cursor-not-allowed' : ''}">${done ? 'Completed' : 'Mark Complete'}</button>
+                                <button data-action="delete" data-index="${idx}" class="text-xs bg-red-600 hover:bg-red-700 px-3 py-1 rounded">Delete</button>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <div class="h-2 w-full bg-gray-700 rounded">
+                                <div class="h-2 bg-blue-600 rounded" style="width: ${progress}%;"></div>
+                            </div>
+                            <div class="text-xs text-gray-300 mt-1">
+                                ${beforeStart ? `Starts in: <span data-role="countdown" data-index="${idx}">${t.days}d ${t.hours}h ${t.minutes}m ${t.seconds}s</span>` : (done ? 'Done' : `Time left: <span data-role="countdown" data-index="${idx}">${t.days}d ${t.hours}h ${t.minutes}m ${t.seconds}s</span>`)} • Progress: <span data-role="progress" data-index="${idx}">${progress}%</span>
+                            </div>
+                        </div>
+                    `;
+                    projectsList.appendChild(container);
+                });
+
+                // Wire buttons
+                projectsList.querySelectorAll('button[data-action]')?.forEach(btn => {
+                    const idx = Number(btn.getAttribute('data-index'));
+                    const action = btn.getAttribute('data-action');
+                    btn.onclick = () => {
+                        if (action === 'delete') {
+                            if (confirm(`Delete project "${projects[idx].name}"?`)) {
+                                projects.splice(idx, 1);
+                                saveProjects();
+                                renderProjects();
+                            }
+                        } else if (action === 'complete') {
+                            projects[idx].completed = true;
+                            saveProjects();
+                            renderProjects();
+                        }
+                    };
+                });
+
+                // Refresh live countdowns
+                if (projectsInterval) clearInterval(projectsInterval);
+                projectsInterval = setInterval(updateProjectLive, 1000);
+            }
+
+            function updateProjectLive() {
+                const now = new Date();
+                projects.forEach((p, idx) => {
+                    const start = new Date(p.startDate);
+                    const end = new Date(p.endDate);
+                    const beforeStart = now < start;
+                    const done = p.completed || now >= end;
+                    const timeLeft = done ? 0 : (beforeStart ? (start - now) : (end - now));
+                    const t = formatDHMS(timeLeft);
+                    const progress = done ? 100 : (beforeStart ? 0 : percentProgress(start, end, now));
+                    // Update DOM
+                    const cd = projectsList.querySelector(`span[data-role="countdown"][data-index="${idx}"]`);
+                    const pr = projectsList.querySelector(`span[data-role="progress"][data-index="${idx}"]`);
+                    const bar = projectsList.querySelectorAll('.h-2.bg-blue-600')[idx];
+                    if (cd) cd.textContent = `${t.days}d ${t.hours}h ${t.minutes}m ${t.seconds}s`;
+                    if (pr) pr.textContent = `${progress}%`;
+                    if (bar) bar.style.width = `${progress}%`;
+                });
+            }
+
+            function escapeHtml(str) {
+                return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+            }
+
+            function initProjectStartDateDefault() {
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const dd = String(today.getDate()).padStart(2, '0');
+                projectStartDateInput.value = `${yyyy}-${mm}-${dd}`;
+            }
+
+            addProjectBtn.addEventListener('click', () => {
+                const name = (projectNameInput.value || '').trim();
+                const startDateStr = projectStartDateInput.value;
+                const y = parseInt(projectYearsInput.value || '0', 10);
+                const m = parseInt(projectMonthsInput.value || '0', 10);
+                const d = parseInt(projectDaysInput.value || '0', 10);
+
+                if (!name) { alert('Please enter a project name.'); return; }
+                if (!startDateStr) { alert('Please choose a start date.'); return; }
+                if ((y + m + d) <= 0) { alert('Please provide a positive duration (years, months, or days).'); return; }
+
+                const start = new Date(startDateStr + 'T00:00:00');
+                const end = addDurationToDate(start, y, m, d);
+
+                const project = {
+                    id: cryptoRandomId(),
+                    name,
+                    startDate: start.toISOString(),
+                    endDate: end.toISOString(),
+                    duration: { years: y, months: m, days: d },
+                    createdAt: new Date().toISOString(),
+                    completed: false
+                };
+                projects.push(project);
+                saveProjects();
+                // Reset simple fields (keep start date for convenience)
+                projectNameInput.value = '';
+                projectYearsInput.value = '0';
+                projectMonthsInput.value = '0';
+                projectDaysInput.value = '0';
+                renderProjects();
+            });
+
+            clearProjectsBtn.addEventListener('click', () => {
+                if (confirm('Clear all projects?')) {
+                    projects = [];
+                    saveProjects();
+                    renderProjects();
+                }
+            });
+
+            function cryptoRandomId() {
+                // Fallback if crypto not available
+                if (window.crypto?.getRandomValues) {
+                    const arr = new Uint32Array(4);
+                    window.crypto.getRandomValues(arr);
+                    return Array.from(arr).map(n => n.toString(16)).join('');
+                }
+                return 'id-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+            }
+
+            // Initialize project planner
+            initProjectStartDateDefault();
+            loadProjects();
+            renderProjects();
+            // Hint visibility
+            if (!currentBirthDate) projectBirthdateHint.classList.remove('hidden');
+        });
+    </script>
+</body>
+</html>

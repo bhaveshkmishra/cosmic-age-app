@@ -120,3 +120,67 @@ git commit -m 'Fix: Enable scrolling on mobile devices'
 git push
 ```
 *   **Result:** Pushing the new commit to the `master` branch automatically triggered a new build on GitHub Pages. The website was updated with the fix a few moments later.
+
+---
+
+## Part 3: Major Enhancements and Security Improvements
+
+As the application evolved, we implemented several major enhancements to improve functionality, security, and maintainability.
+
+### Step 1: Modular Code Structure
+
+We refactored the monolithic JavaScript code into separate modules for better maintainability:
+*   **utils.js**: Utility functions for date calculations and formatting
+*   **storage.js**: Functions for localStorage operations
+*   **ui.js**: UI interaction functions
+*   **fun-facts.js**: Fun facts generation functions
+*   **projects.js**: Project planner functionality
+*   **ai.js**: AI integration functions
+
+This modular approach makes the codebase easier to understand, test, and maintain.
+
+### Step 2: Security Improvements
+
+We addressed the critical security issue of the exposed API key:
+*   **API Key Handling**: Moved API key handling to a more secure approach
+*   **Backend Proxy**: Created a placeholder for a secure backend service to handle API calls
+*   **Input Validation**: Enhanced validation for user inputs
+
+### Step 3: Accessibility Enhancements
+
+We improved accessibility to make the app usable for everyone:
+*   **ARIA Labels**: Added ARIA attributes for better screen reader support
+*   **Focus Management**: Improved keyboard navigation
+*   **Skip Links**: Added skip to main content link
+*   **Semantic HTML**: Better use of semantic HTML elements
+
+### Step 4: Performance Optimizations
+
+We made several performance improvements:
+*   **Star Animation**: Reduced number of stars from 200 to 150 for better performance
+*   **Interval Management**: Better management of intervals and timers
+*   **DOM Manipulations**: More efficient DOM updates
+
+### Step 5: New Features
+
+We added several new features to enhance the user experience:
+*   **Project Planner**: A new feature to plan projects with duration tracking
+*   **Age at Completion**: Calculate your age when projects will be completed
+*   **Responsive Design Improvements**: Better layout for different screen sizes
+
+### Step 6: Deploying the Enhancements
+
+To deploy these enhancements, we followed the standard Git workflow:
+
+```bash
+# 1. Stage all modified and new files
+git add .
+
+# 2. Commit the changes with a descriptive message
+git commit -m '✨ Enhanced v2.1: Modular structure, security improvements, new features'
+
+# 3. Push the new commit to GitHub
+git push
+```
+
+These enhancements significantly improved the application's functionality, security, and user experience while making the codebase more maintainable.
